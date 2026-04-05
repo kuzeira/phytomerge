@@ -1,26 +1,62 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class BoxController : MonoBehaviour
 {
-    public List<GameObject> ingredients = new List<GameObject>();
+    public List<IngredientData> ingredients = new List<IngredientData>();
+    public Image[] slots;
 
-    // Вытаскиваем ингредиент
-    public void ExtractIngredient()
+    private void Start()
     {
-        if (ingredients.Count == 0)
+        RefreshUI();
+    }
+
+    public void RefreshUI()
+    {
+        for (int i = 0; i < slots.Length; i++)
         {
-            Debug.Log("Коробка пуста!");
-            return;
+            if (i < ingredients.Count && ingredients[i] != null && ingredients[i].icon != null)
+            {
+                slots[i].sprite = ingredients[i].icon;
+                slots[i].enabled = true;
+                slots[i].color = Color.white;
+                slots[i].preserveAspect = true;
+            }
+            else
+            {
+                slots[i].sprite = null;
+                slots[i].enabled = false;
+            }
         }
+    }
 
-        // Берём последний ингредиент
-        GameObject ingredient = ingredients[ingredients.Count - 1];
+    public bool CanAddIngredient()
+    {
+        return ingredients.Count < 3;
+    }
+
+    public IngredientData PeekTopIngredient()
+    {
+        if (ingredients.Count == 0) return null;
+        return ingredients[ingredients.Count - 1];
+    }
+
+    public IngredientData RemoveTopIngredient()
+    {
+        if (ingredients.Count == 0) return null;
+
+        IngredientData top = ingredients[ingredients.Count - 1];
         ingredients.RemoveAt(ingredients.Count - 1);
+        RefreshUI();
+        return top;
+    }
 
-        // Можно делать анимацию или просто скрыть
-        ingredient.SetActive(false);
+    public void AddIngredient(IngredientData ingredient)
+    {
+        if (ingredient == null || !CanAddIngredient()) return;
 
-        Debug.Log("Ингредиент извлечён: " + ingredient.name);
+        ingredients.Add(ingredient);
+        RefreshUI();
     }
 }
