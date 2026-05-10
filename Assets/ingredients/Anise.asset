@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1541455ae44ea6a42843322faf915584, type: 3}
-  m_Name: Mint
+  m_Name: Anise
   m_EditorClassIdentifier: 
-  ingredientName: Mint
-  icon: {fileID: 21300000, guid: 019228b84a535a34eafecf4b0ff3b859, type: 3}
+  ingredientName: Anise
+  icon: {fileID: 21300000, guid: e28082a20acca834fa644eb43af9ad99, type: 3}

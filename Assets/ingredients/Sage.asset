@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: Sage
   m_EditorClassIdentifier: 
   ingredientName: Sage
-  icon: {fileID: 21300000, guid: e7ecbd1a245f66d46a51630acc4d6a54, type: 3}
+  icon: {fileID: 21300000, guid: 1fa41f976b26c4a45a6e19c6c23e8441, type: 3}

@@ -6,7 +6,6 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Image))]
 public class IngredientSlotDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    [Header("References")]
     public BoxController parentBox;
     public int slotIndex;
     public Image dragIcon;
@@ -21,19 +20,15 @@ public class IngredientSlotDragHandler : MonoBehaviour, IBeginDragHandler, IDrag
 
         if (dragIcon == null)
         {
-            GameObject dragIconObject = GameObject.Find("DragIcon");
-            if (dragIconObject != null)
-            {
-                dragIcon = dragIconObject.GetComponent<Image>();
-            }
+            GameObject obj = GameObject.Find("DragIcon");
+            if (obj != null)
+                dragIcon = obj.GetComponent<Image>();
         }
 
         if (dragIcon != null)
         {
             dragIcon.enabled = false;
             dragIcon.raycastTarget = false;
-            dragIcon.color = new Color(1f, 1f, 1f, 1f);
-            dragIcon.transform.localScale = Vector3.one;
         }
     }
 
@@ -44,25 +39,20 @@ public class IngredientSlotDragHandler : MonoBehaviour, IBeginDragHandler, IDrag
         draggedIngredient = parentBox.GetIngredientAt(slotIndex);
 
         if (draggedIngredient == null || dragIcon == null || draggedIngredient.icon == null)
-        {
-            isDragging = false;
             return;
-        }
 
         isDragging = true;
 
         dragIcon.sprite = draggedIngredient.icon;
         dragIcon.enabled = true;
         dragIcon.preserveAspect = true;
-        dragIcon.transform.position = eventData.position;
-        dragIcon.transform.SetAsLastSibling();
-        dragIcon.transform.localScale = Vector3.one * 1.35f;
         dragIcon.color = new Color(1f, 1f, 1f, 0.95f);
+        dragIcon.transform.position = eventData.position;
+        dragIcon.transform.localScale = Vector3.one * 1.35f;
+        dragIcon.transform.SetAsLastSibling();
 
         if (slotImage != null)
-        {
-            slotImage.color = new Color(1f, 1f, 1f, 0.2f);
-        }
+            slotImage.color = new Color(1f, 1f, 1f, 0.25f);
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -76,55 +66,50 @@ public class IngredientSlotDragHandler : MonoBehaviour, IBeginDragHandler, IDrag
     {
         if (!isDragging) return;
 
-        BoxController targetBox = GetTargetBox(eventData);
+        IngredientSlotDragHandler targetSlot = GetTargetSlot(eventData);
 
-        if (targetBox != null && targetBox != parentBox && targetBox.HasEmptySlot())
+        if (targetSlot != null && targetSlot.parentBox != null)
         {
-            IngredientData moved = parentBox.RemoveIngredientAt(slotIndex);
-
-            if (moved != null)
-            {
-                bool added = targetBox.AddIngredientToFirstEmpty(moved);
-
-                if (!added)
-                {
-                    parentBox.ingredients[slotIndex] = moved;
-                    parentBox.RefreshUI();
-                }
-            }
+            parentBox.SwapOrMoveIngredient(
+                targetSlot.parentBox,
+                slotIndex,
+                targetSlot.slotIndex
+            );
         }
 
         if (dragIcon != null)
         {
             dragIcon.enabled = false;
             dragIcon.sprite = null;
-            dragIcon.color = new Color(1f, 1f, 1f, 1f);
             dragIcon.transform.localScale = Vector3.one;
+            dragIcon.color = Color.white;
         }
 
-        if (slotImage != null)
-        {
-            slotImage.color = new Color(1f, 1f, 1f, 1f);
-        }
+        parentBox.RefreshUI();
+
+        if (targetSlot != null && targetSlot.parentBox != null)
+            targetSlot.parentBox.RefreshUI();
 
         draggedIngredient = null;
         isDragging = false;
     }
 
-    private BoxController GetTargetBox(PointerEventData eventData)
+    private IngredientSlotDragHandler GetTargetSlot(PointerEventData eventData)
     {
         var results = new List<RaycastResult>();
         EventSystem.current.RaycastAll(eventData, results);
 
         foreach (var result in results)
         {
-            BoxController box = result.gameObject.GetComponent<BoxController>();
-            if (box != null)
-                return box;
+            IngredientSlotDragHandler slot = result.gameObject.GetComponent<IngredientSlotDragHandler>();
 
-            box = result.gameObject.GetComponentInParent<BoxController>();
-            if (box != null)
-                return box;
+            if (slot != null)
+                return slot;
+
+            slot = result.gameObject.GetComponentInParent<IngredientSlotDragHandler>();
+
+            if (slot != null)
+                return slot;
         }
 
         return null;

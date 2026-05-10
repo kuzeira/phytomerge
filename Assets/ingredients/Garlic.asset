@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1541455ae44ea6a42843322faf915584, type: 3}
-  m_Name: Thyme
+  m_Name: Garlic
   m_EditorClassIdentifier: 
-  ingredientName: Thyme
+  ingredientName: Garlic
   icon: {fileID: 21300000, guid: 51199fa2c004d6e44a2753a08f82f4e1, type: 3}

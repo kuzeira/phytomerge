@@ -1,150 +1,203 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class BoxController : MonoBehaviour
 {
-    [Header("Box Data")]
     public IngredientData[] ingredients = new IngredientData[3];
+    public IngredientData[] previewIngredients = new IngredientData[3];
 
-    [Header("UI")]
     public Image[] slots = new Image[3];
+    public Image[] previewSlots = new Image[3];
 
-    [Header("NPC")]
     public NPCOrderUI npcOrderUI;
+
+    private bool isMatching;
 
     private void Start()
     {
-        PreventStartingMatch();
         RefreshUI();
+        RefreshPreviewUI();
+    }
+
+    public IngredientData GetIngredientAt(int index)
+    {
+        if (index < 0 || index >= 3) return null;
+        return ingredients[index];
+    }
+
+    public void SwapOrMoveIngredient(BoxController targetBox, int fromIndex, int targetIndex)
+    {
+        if (targetBox == null || isMatching || targetBox.isMatching) return;
+
+        IngredientData fromIngredient = ingredients[fromIndex];
+        IngredientData targetIngredient = targetBox.ingredients[targetIndex];
+
+        if (fromIngredient == null) return;
+
+        targetBox.ingredients[targetIndex] = fromIngredient;
+        ingredients[fromIndex] = targetIngredient;
+
+        RefreshUI();
+        targetBox.RefreshUI();
+
+        CheckMatch();
+        targetBox.CheckMatch();
+
+        RefillFromPreviewIfEmpty();
+        targetBox.RefillFromPreviewIfEmpty();
+    }
+
+    public void SetIngredients(IngredientData[] newIngredients)
+    {
+        for (int i = 0; i < 3; i++)
+            ingredients[i] = newIngredients != null && i < newIngredients.Length ? newIngredients[i] : null;
+
+        RefreshUI();
+    }
+
+    public void SetPreview(IngredientData[] newPreview)
+    {
+        for (int i = 0; i < 3; i++)
+            previewIngredients[i] = newPreview != null && i < newPreview.Length ? newPreview[i] : null;
+
+        RefreshPreviewUI();
+    }
+
+    public void UsePreviewAsCurrent()
+    {
+        SetIngredients(previewIngredients);
+        SetPreview(null);
     }
 
     public void RefreshUI()
     {
-        if (slots == null || slots.Length < 3)
-        {
-            Debug.LogError($"{gameObject.name}: slots не настроены");
-            return;
-        }
-
-        if (ingredients == null || ingredients.Length < 3)
-        {
-            Debug.LogError($"{gameObject.name}: ingredients не настроены");
-            return;
-        }
-
         for (int i = 0; i < 3; i++)
         {
-            if (slots[i] == null)
-            {
-                Debug.LogError($"{gameObject.name}: Slot {i} не назначен");
-                continue;
-            }
+            if (slots[i] == null) continue;
+
+            slots[i].enabled = true;
+            slots[i].raycastTarget = true;
+            slots[i].transform.localScale = Vector3.one;
 
             if (ingredients[i] != null && ingredients[i].icon != null)
             {
                 slots[i].sprite = ingredients[i].icon;
-                slots[i].enabled = true;
                 slots[i].color = Color.white;
                 slots[i].preserveAspect = true;
             }
             else
             {
                 slots[i].sprite = null;
-                slots[i].enabled = false;
+                slots[i].color = new Color(1, 1, 1, 0);
             }
         }
     }
 
-    public IngredientData GetIngredientAt(int index)
+    public void RefreshPreviewUI()
     {
-        if (index < 0 || index >= ingredients.Length)
-            return null;
-
-        return ingredients[index];
-    }
-
-    public IngredientData RemoveIngredientAt(int index)
-    {
-        if (index < 0 || index >= ingredients.Length)
-            return null;
-
-        IngredientData ingredient = ingredients[index];
-        ingredients[index] = null;
-        RefreshUI();
-        return ingredient;
-    }
-
-    public bool HasEmptySlot()
-    {
-        for (int i = 0; i < ingredients.Length; i++)
+        for (int i = 0; i < 3; i++)
         {
-            if (ingredients[i] == null)
-                return true;
-        }
+            if (previewSlots[i] == null) continue;
 
-        return false;
-    }
-
-    public bool AddIngredientToFirstEmpty(IngredientData ingredient)
-    {
-        if (ingredient == null)
-            return false;
-
-        for (int i = 0; i < ingredients.Length; i++)
-        {
-            if (ingredients[i] == null)
+            if (previewIngredients[i] != null && previewIngredients[i].icon != null)
             {
-                ingredients[i] = ingredient;
-                RefreshUI();
-                CheckMatch();
-                return true;
+                previewSlots[i].sprite = previewIngredients[i].icon;
+                previewSlots[i].enabled = true;
+                previewSlots[i].color = Color.white;
+                previewSlots[i].preserveAspect = true;
+            }
+            else
+            {
+                previewSlots[i].sprite = null;
+                previewSlots[i].enabled = false;
             }
         }
-
-        return false;
     }
 
     public bool CheckMatch()
     {
+        if (isMatching) return false;
+
         if (ingredients[0] == null || ingredients[1] == null || ingredients[2] == null)
             return false;
 
         if (ingredients[0] == ingredients[1] && ingredients[1] == ingredients[2])
         {
-            IngredientData matchedIngredient = ingredients[0];
-            Debug.Log($"MATCH! В коробке {gameObject.name} собрано 3 x {matchedIngredient.ingredientName}");
+            IngredientData matched = ingredients[0];
 
             if (npcOrderUI != null)
-            {
-                npcOrderUI.OnIngredientMatched(matchedIngredient);
-            }
+                npcOrderUI.OnIngredientMatched(matched);
 
-            ClearBox();
+            StartCoroutine(PlayMatchEffect());
             return true;
         }
 
         return false;
     }
 
+    private IEnumerator PlayMatchEffect()
+    {
+        isMatching = true;
+
+        foreach (Image slot in slots)
+        {
+            if (slot != null)
+            {
+                slot.color = Color.yellow;
+                slot.transform.localScale = Vector3.one * 1.35f;
+            }
+        }
+
+        yield return new WaitForSeconds(0.3f);
+
+        ClearBox();
+        RefillFromPreviewIfEmpty();
+
+        isMatching = false;
+    }
+
     public void ClearBox()
     {
-        for (int i = 0; i < ingredients.Length; i++)
-        {
+        for (int i = 0; i < 3; i++)
             ingredients[i] = null;
-        }
 
         RefreshUI();
     }
 
-    private void PreventStartingMatch()
+    public bool IsEmpty()
     {
-        if (ingredients[0] == null || ingredients[1] == null || ingredients[2] == null)
-            return;
-
-        if (ingredients[0] == ingredients[1] && ingredients[1] == ingredients[2])
+        for (int i = 0; i < 3; i++)
         {
-            Debug.LogWarning($"{gameObject.name}: стартовая тройка обнаружена. Третий слот очищен.");
-            ingredients[2] = null;
+            if (ingredients[i] != null)
+                return false;
+        }
+
+        return true;
+    }
+
+    public bool HasPreview()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (previewIngredients[i] != null)
+                return true;
+        }
+
+        return false;
+    }
+
+    public void RefillFromPreviewIfEmpty()
+    {
+        if (!IsEmpty()) return;
+
+        if (HasPreview())
+        {
+            UsePreviewAsCurrent();
+
+            LevelManager levelManager = FindFirstObjectByType<LevelManager>();
+            if (levelManager != null)
+                levelManager.GiveNextPreviewToBox(this);
         }
     }
 }
